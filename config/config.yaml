@@ -1,0 +1,8 @@
+camera:
+  id: 0
+  width: 640
+  height: 480
+
+video:
+  fps: 30
+  path: results/tracking_result.mp4
