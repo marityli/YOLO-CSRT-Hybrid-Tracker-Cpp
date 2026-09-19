@@ -8,22 +8,41 @@
 YOLODetector::YOLODetector(
 	const std::string& model_path,
 	float confidence_threshold,
-	float nms_threshold
+	float nms_threshold,
+	int input_width,
+	int input_height,
+	int intra_op_threads,
+	bool use_cuda,
+	int cuda_device_id,
+	int profile_interval
 )
 	:env(ORT_LOGGING_LEVEL_WARNING, "YOLODetector"),
 	confidence_threshold(confidence_threshold),
 	nms_threshold(nms_threshold),
-	input_width(640),
-	input_height(640)
+	input_width(input_width),
+	input_height(input_height),
+	intra_op_threads(intra_op_threads),
+	use_cuda(use_cuda),
+	cuda_device_id(cuda_device_id),
+	profile_interval(profile_interval)
 {
-	session_options.SetIntraOpNumThreads(1);
+	// 0 表示交给 ONNX Runtime 按物理核心自动决定
+	session_options.SetIntraOpNumThreads(intra_op_threads);
 	session_options.SetGraphOptimizationLevel(
 		GraphOptimizationLevel::ORT_ENABLE_ALL
 	);
 
-	OrtCUDAProviderOptions cuda_options{};
-	cuda_options.device_id = 0;
-	session_options.AppendExecutionProvider_CUDA(cuda_options);
+	if (use_cuda)
+	{
+		OrtCUDAProviderOptions cuda_options{};
+		cuda_options.device_id = cuda_device_id;
+		session_options.AppendExecutionProvider_CUDA(cuda_options);
+	}
+	else
+	{
+		std::cout << "CUDA provider disabled by config, running on CPU."
+			<< std::endl;
+	}
 
 	try
 	{
@@ -74,6 +93,11 @@ YOLODetector::YOLODetector(
 		);
 	}
 	std::cout << "YOLO ONNX model loaded successfully." << std::endl;
+	std::cout << "  model: " << model_path
+		<< " | input: " << input_width << "x" << input_height
+		<< " | conf: " << confidence_threshold
+		<< " | nms: " << nms_threshold
+		<< " | intra_op_threads: " << intra_op_threads << std::endl;
 }
 
 std::vector<float> YOLODetector::preprocess(
@@ -409,7 +433,7 @@ std::vector<Detection> YOLODetector::detect(
 	auto post_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_post - start_post).count();
 
 	static int frame_count = 0;
-	if (frame_count++ % 30 == 0) {
+	if (profile_interval > 0 && frame_count++ % profile_interval == 0) {
 		std::cout << "耗时统计 -> 预处理: " << pre_ms << "ms | 推理(GPU): " << run_ms
 			<< "ms | 后处理: " << post_ms << "ms" << std::endl;
 	}

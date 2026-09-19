@@ -7,13 +7,17 @@ class VideoRecorder
 {
 private:
 	cv::VideoWriter writer;
+	std::string filename;
 
 public:
 	VideoRecorder(
 		const std::string& filename,
 		double fps,
-		cv::Size size
+		cv::Size size,
+		const std::string& fourcc = "mp4v"
 	);
+
+	bool isOpened() const;
 
 	void write(const cv::Mat& frame);
 

@@ -12,7 +12,7 @@ void Tracker::init(
 	const cv::Rect& bbox
 )
 {
-	tracker = cv::TrackerCSRT::create();
+	tracker = cv::TrackerKCF::create();
 
 	tracker->init(frame, bbox);
 }

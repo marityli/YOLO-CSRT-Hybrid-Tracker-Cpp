@@ -35,14 +35,63 @@ Supported model formats: `.pt`, `.onnx`, `.engine` (these are ignored by `.gitig
     cmake --build build --config Release
 
 ### 3. Prepare runtime DLLs
-Copy necessary CUDA DLLs (e.g., `cudnn64_9.dll`, `cublasLt64_12.dll`) into `build/Release/` if they are not automatically found.
+
+The build auto-copies ONNX Runtime's DLLs. However `onnxruntime_providers_cuda.dll` additionally
+links against CUDA 12 / cuDNN 9 runtime libraries that live in your CUDA Toolkit install, **not**
+in `build/Release`:
+
+| Library | Belongs to |
+|---|---|
+| `cudart64_12.dll` | CUDA Runtime |
+| `cublas64_12.dll`, `cublasLt64_12.dll` | cuBLAS |
+| `cufft64_11.dll` | cuFFT (the `_11` suffix is correct for CUDA 12) |
+| `cudnn64_9.dll`, `cudnn_*64_9.dll` | cuDNN 9 |
+
+Two ways to get them next to the executable:
+
+**Option A — let CMake do it.** Set `CUDA_TOOLKIT_ROOT` in `CMakeLists.txt` (top of the file) to
+your CUDA 12 install directory, then re-run configure. Every build will copy whatever it finds.
+
+**Option B — run the deploy script.**
+
+    scripts\deploy_cuda_dlls.bat
+
+It looks in `bin\`, `bin\x64\` and `lib\x64\` of the CUDA directory, copies all libraries it finds,
+and reports anything missing. Pass a different CUDA path as the first argument if needed.
+
+If CUDA cannot be set up right now, set `model.use_cuda: false` in `config/config.yaml` to fall
+back to CPU inference — the program starts and runs without any CUDA DLLs.
 
 ## Usage
 After building, run the executable:
 
     ./build/Release/tracking_cpp.exe
 
+The program must be started **from the project root directory**, because `config/config.yaml`,
+`models/` and `logs/` are resolved as relative paths.
+
 Press `q` or `ESC` to exit the program.
+
+## Configuration
+
+All tunable parameters live in `config/config.yaml`, grouped into six sections:
+
+| Section | Covers |
+|---|---|
+| `camera` | device id, capture resolution |
+| `video` | output path, fps, `fourcc` codec |
+| `model` | ONNX model path, confidence/NMS thresholds, input size, ORT thread count, CUDA on/off and device id |
+| `tracking` | detection interval, target class id, IoU gating thresholds, max lost frames, Kalman noise |
+| `logging` | log file path, minimum level, console mirroring |
+| `display` | window title, show window, draw FPS, profiling interval |
+
+Every key is optional. A missing key falls back to its built-in default and prints a warning;
+an out-of-range value is clamped back to a legal value with an explanation. On startup the
+effective configuration is printed and written to the log, so a mistyped key name is easy to spot.
+
+A different config file can be passed on the command line:
+
+    ./build/Release/tracking_cpp.exe path/to/other_config.yaml
 
 *(Note: Benchmark data is based on local testing with an RTX 3050 Ti Laptop GPU.)*
 

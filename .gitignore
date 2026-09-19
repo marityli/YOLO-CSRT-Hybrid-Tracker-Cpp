@@ -3,6 +3,9 @@
 .idea/
 .vscode/
 
+#AI agent
+.workbuddy/
+
 # Build
 build/
 out/

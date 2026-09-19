@@ -32,6 +32,11 @@ private:
 	int input_width;
 	int input_height;
 
+	int intra_op_threads;
+	bool use_cuda;
+	int cuda_device_id;
+	int profile_interval;
+
 	float letterbox_scale = 1.0f;
 	int letterbox_pad_x = 0;
 	int letterbox_pad_y = 0;
@@ -48,7 +53,13 @@ public:
 	YOLODetector(
 		const std::string& model_path,
 		float confidence_threshold = 0.5f,
-		float nms_threshold = 0.45f
+		float nms_threshold = 0.45f,
+		int input_width = 640,
+		int input_height = 640,
+		int intra_op_threads = 0,
+		bool use_cuda = true,
+		int cuda_device_id = 0,
+		int profile_interval = 30
 	);
 
 	std::vector<Detection> detect(const cv::Mat& frame);
